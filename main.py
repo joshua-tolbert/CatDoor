@@ -7,6 +7,7 @@ speaker = Speaker(22)
 E3=164
 F3=174
 Gb3=185
+solmos = Pin(11, mode=Pin.OUT)
 G3=196
 Ab3=207
 A3=220
@@ -26,6 +27,8 @@ Bb4=466
 B4=493
 C5=523
 Db5=554
+tim=10
+solmos.value(0)
 limopen_flag=0
 opend=0
 sink = 0
@@ -44,7 +47,7 @@ motmos = Pin(20, mode=Pin.OUT)
 motmos.value(0)
 direction= Pin(21, mode=Pin.OUT)
 solmos.value(0)
-pir1outside = Pin(14, Pin.IN, Pin.PULL_DOWN)
+pir1outside = Pin(12, Pin.IN, Pin.PULL_DOWN)
 pir2inside = Pin(0, Pin.IN, Pin.PULL_DOWN)
 ins = 0
 outs=0
@@ -61,13 +64,13 @@ limopen= Pin(28, Pin.IN , Pin.PULL_UP)
 limclose= Pin(15, Pin.IN , Pin.PULL_UP)
 alarmbtn=Pin(19, Pin.IN , Pin.PULL_UP)
 mutebtn=Pin(26, Pin.IN , Pin.PULL_UP)
-def door_open():
-    print('door open activated')
-    direction.value(0)
-    solmos.value(1)
-    time.sleep(1)
-    motmos.value(1)
-    time.sleep(1)
+# def door_open():
+#     print('door open activated')
+#     direction.value(0)
+#     solmos.value(1)
+#     time.sleep(1)
+#     motmos.value(1)
+#     time.sleep(1)
 
 #     if pir1outside.value() == 0 and pir2inside.value() == 0:
 #         door_close()
@@ -124,41 +127,78 @@ def door_open():
 
 
 while True:
-    print(pir2inside.value())
-    print(pir1outside.value())
     time.sleep(0.1)
+    print('inside',pir2inside.value())
+    print('outside',pir1outside.value())
+    print('opend =',opend)
+    print('stuck =',stuck)
+    print('open',limopen.value())
+    print('close',limclose.value())
+    
 #     if pir1outside.value() == 1:
 #         outs= outs+1
 #         print('Motion Detected: outside ',outs)
 #         time.sleep(5)
 #         if outs>0:
 #             print('Scanning') #Disable Dormant: Scanning for cat
-    if pir2inside.value() == 1:
+    if pir2inside.value() == 1 and opend == 0:
         ins = ins+1
+        print('f')
         print('Motion Detected: inside ',ins)
         time.sleep(5)
-        door_open()
+        print('door open activated')
+        direction.value(0)
+        solmos.value(1)
+        time.sleep(1)
+        motmos.value(1)
+        time.sleep(1)
+        if alarmbtn.value() is 0:
+            stuck=0
+            opend=0
+            speaker.off()
+            direction.value(1)
+            solmos.value(1)
+            time.sleep(1)
+            motmos.value(1)
+            time.sleep(4)
     if limopen.value() == 0 and stuck==1:
-        motmos.value(0)
+        print('a')
         solmos.value(0)
+        time.sleep(1)
+        motmos.value(0)
+       
+#         opend=1
     if limopen.value() == 0 and stuck==0 and sink==1:
-        motmos.value(0)
+        print('b')
         solmos.value(0)
+        time.sleep(1)
+        motmos.value(0)
+#         opend=1
     if limopen.value() == 0  and stuck==0 and sink==0:
+        print('c')
         solmos.value(0)
+        time.sleep(1)
         motmos.value(0)
+        opend=1
+        time.sleep(4)
             
         
     elif limclose.value()==0:
+        print('e')
         motmos.value(0)
         solmos.value(0)
-    if pir2inside.value() == 0 and limopen.value() == 0 and pir1outside.value() == 0:
-       direction.value(1)
-       solmos.value(1)
-       time.sleep(1)
-       motmos.value(1)
-       time.sleep(3)
-       if limclose.value()==1:
+        opend=0
+    if pir2inside.value() == 0 and opend == 1 and pir1outside.value() == 0 and stuck==0:
+        print('d')
+#         time.sleep(4)
+#         direction.value(0)
+#         motmos.value(1)
+#         solmos.value(1)
+#         time.sleep(0.5)
+        direction.value(1)
+        motmos.value(1)
+        time.sleep(3)
+        if limclose.value()==1:
             print('door stuck')
             speaker.on(F4)
             print('door stuck activated')
@@ -167,6 +207,15 @@ while True:
             solmos.value(1)
             time.sleep(1)
             motmos.value(1)
+            if alarmbtn.value() is 0:
+                stuck=0
+                opend=0
+                speaker.off()
+                direction.value(1)
+                solmos.value(1)
+                time.sleep(1)
+                motmos.value(1)
+                time.sleep(4)
 #     if stressbtn.value() is 1:
 #        stress_test()
   
@@ -191,17 +240,27 @@ while True:
 #                 #b=(sum(cat2)-sum(data))creates a zero condition for cat2 probably not necessary
             if (data) in catdata:#checks if the rfid data maches the data of the stored cat 1
                     print("ACCESS GRANTED")
-                    door_open()#indicates if the chip is good. opening door sequence should follow
+                    print('door open activated')
+                    direction.value(0)
+                    solmos.value(1)
+                    time.sleep(1)
+                    motmos.value(1)
+                    time.sleep(1)#indicates if the chip is good. opening door sequence should follow
 #                   
             else:
                 print('NOT AUTHORIIZED')
-                speaker.play(note,10)
+                speaker.play(note,tim)
 # 
     elif syncbtn.value() is 0 and motorsync==0:
         time.sleep(0.1)
         print('sync mode activated')
         sink = 1
-        door_open()
+        print('door open activated')
+        direction.value(0)
+        solmos.value(1)
+        time.sleep(1)
+        motmos.value(1)
+        time.sleep(1)
         motorsync=1
         
 #         syncbtn.value(0)
@@ -226,22 +285,35 @@ while True:
                     print('door stuck')
                     speaker.on(F4)
                     print('door stuck activated')
-                    stuck=1
-                    direction.value(0)
-                    solmos.value(1)
-                    time.sleep(1)
-                    motmos.value(1)
+                    if alarmbtn.value() is 0:
+                        stuck=0
+                        opend=0
+                        speaker.off()
+                        direction.value(1)
+                        solmos.value(1)
+                        time.sleep(1)
+                        motmos.value(1)
+                        time.sleep(4)
+                        stuck=1
+                        opend=1
+                        direction.value(0)
+                        solmos.value(1)
+                        time.sleep(1)
+                        motmos.value(1)
     if mutebtn.value() is 0:
         print("mute Detected")
         ismute=not ismute
         time.sleep(0.5)
         print (ismute)
-        if ismute==0:
-            note=A4
-        elif ismute==1:
-            note=0
+    if ismute==0:
+        note=A4
+        tim=10
+    elif ismute==1:
+        note=0
+        tim=0
     if alarmbtn.value() is 0:
         stuck=0
+        opend=0
         speaker.off()
         direction.value(1)
         solmos.value(1)
